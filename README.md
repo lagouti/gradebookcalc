@@ -1,2 +1,0 @@
-# gradebookcalc
-Gradebook Calculator
