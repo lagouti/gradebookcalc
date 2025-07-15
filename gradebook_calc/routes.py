@@ -152,15 +152,12 @@ def get_student_grades_api(student_name):
         course_name = grade_entry.get('Course')
         curriculum_info = curriculum_lookup.get(course_name)
         
-        # --- Grade Conversion Logic ---
         grade_20_scale = "N/A"
         try:
-            # Assumes grade is a string like "85%"
             percentage_str = grade_entry.get('Grade', '0').strip().replace('%', '')
             percentage_float = float(percentage_str)
             grade_20_scale = round((percentage_float / 100) * 20, 2)
         except (ValueError, TypeError):
-            # Handle cases where conversion is not possible
             pass
 
         enriched_entry = {
@@ -179,24 +176,38 @@ def get_student_grades_api(student_name):
     return jsonify(enriched_grades), 200
 
 
+@main_bp.route('/api/semesters', methods=['GET'])
+def get_semesters_api():
+    """Extracts and returns a list of unique semesters from the curriculum data."""
+    if 'curriculum' not in session:
+        return jsonify({"error": "Curriculum data not loaded."}), 400
+    
+    curriculum = session['curriculum']
+    semesters = sorted(list(set(c.get('Semester') for c in curriculum if c.get('Semester'))))
+    return jsonify(semesters), 200
+
+
 @main_bp.route('/api/calculate', methods=['POST'])
 def calculate_api():
-    """API endpoint for calculating grades using data stored in the session."""
+    """API endpoint for calculating final grade averages for a specific student and semester."""
     try:
-        if 'curriculum' not in session:
-            return jsonify({"error": "Curriculum data has not been loaded."}), 400
-        if 'grades' not in session:
-            return jsonify({"error": "Student grades data has not been loaded."}), 400
+        if 'curriculum' not in session or 'grades' not in session:
+            return jsonify({"error": "Required data not loaded."}), 400
+        
+        data = request.get_json()
+        student_name = data.get('student_name')
+        semester = data.get('semester')
+
+        if not student_name or not semester:
+            return jsonify({"error": "Student name and semester must be provided."}), 400
 
         curriculum = session['curriculum']
         grades = session['grades']
         
-        final_grades = calculation_manager.calculate_final_grades(curriculum, grades)
+        final_grades_summary = calculation_manager.calculate_final_grades(curriculum, grades, student_name, semester)
         
-        session.clear()
-        
-        return jsonify({"data": final_grades}), 200
+        return jsonify({"data": final_grades_summary}), 200
 
     except Exception as e:
         print(f"An unexpected error occurred: {e}") 
-        return jsonify({"error": "An internal server error occurred."}), 500
+        return jsonify({"error": f"An unexpected error occurred: {e}"}), 500

@@ -1,72 +1,99 @@
 # gradebook_calc/managers/calculation_manager.py
 
-def calculate_final_grades(curriculum: dict, grades: list[dict]) -> list[dict]:
+from collections import defaultdict
+
+def calculate_final_grades(curriculum_data, grades_data, student_name, semester):
     """
-    Calculates the final weighted grade for each student based on the curriculum.
-
-    Args:
-        curriculum: The parsed curriculum dictionary.
-        grades: The parsed list of student grade entries.
-
-    Returns:
-        A list of dictionaries, each containing a student's ID, name, and final grade.
+    Calculates a detailed, multi-format grade summary for a specific student and semester.
+    
+    The function returns a list of dictionaries formatted for display, including:
+    - Individual courses with credits, percentage grade, and 20-point scale grade.
+    - Grouping by Teaching Unit.
+    - A summary row for each Teaching Unit with total credits and average grades.
+    - A final summary row for the semester with total credits and overall average grades.
     """
     
-    # 1. Create a quick lookup for category weights.
-    category_weights = {item['category']: item['weight'] for item in curriculum['gradingPolicy']}
-    
-    # 2. Group all grade entries by student ID.
-    student_grades = {}
-    for grade_entry in grades:
-        student_id = grade_entry.get('student_id')
-        if not student_id:
-            continue # Skip rows without a student ID
+    # 1. Filter curriculum for the selected semester and create a course lookup.
+    courses_info = {}
+    for course_row in curriculum_data:
+        if course_row.get('Semester') == semester:
+            try:
+                courses_info[course_row['Course']] = {
+                    'credits': int(course_row.get('Credits', 0)),
+                    'unit': course_row.get('Teaching unit', 'N/A')
+                }
+            except (ValueError, KeyError):
+                continue
 
-        if student_id not in student_grades:
-            student_grades[student_id] = {
-                'name': grade_entry.get('student_name', 'N/A'),
-                'assignments': []
-            }
-        student_grades[student_id]['assignments'].append(grade_entry)
+    # 2. Filter grades for the selected student.
+    student_grades_list = [g for g in grades_data if g.get('Student Name') == student_name]
 
-    # 3. Process each student's grades to calculate their final score.
-    final_results = []
-    for student_id, data in student_grades.items():
-        # Group scores by category for this student
-        scores_by_category = {cat: [] for cat in category_weights.keys()}
-        
-        for assignment in data['assignments']:
-            assignment_name = assignment.get('assignment_name', '').lower()
-            
-            # Find which category this assignment belongs to
-            found_category = None
-            for category in category_weights.keys():
-                if category.lower() in assignment_name:
-                    found_category = category
-                    break
-            
-            if found_category:
+    # 3. Group the student's grades by Teaching Unit.
+    grades_by_unit = defaultdict(list)
+    for grade_info in student_grades_list:
+        course_name = grade_info.get('Course')
+        if course_name in courses_info:
+            teaching_unit = courses_info[course_name]['unit']
+            grades_by_unit[teaching_unit].append(grade_info)
+
+    # 4. Prepare the detailed summary list for display.
+    final_summary_data = []
+    overall_weighted_sum = 0.0
+    overall_credit_sum = 0
+
+    # Sort teaching units alphabetically for consistent order.
+    for unit in sorted(grades_by_unit.keys()):
+        unit_grades = grades_by_unit[unit]
+        unit_weighted_grades = 0.0
+        unit_total_credits = 0
+
+        # Add rows for each course within the teaching unit.
+        for grade_info in unit_grades:
+            course_name = grade_info.get('Course')
+            if course_name in courses_info:
+                course_credits = courses_info[course_name]['credits']
                 try:
-                    score = float(assignment['grade'])
-                    scores_by_category[found_category].append(score)
+                    grade_percent = float(grade_info.get('Grade', '0').strip('%'))
                 except (ValueError, TypeError):
-                    # Ignore grades that are not valid numbers
-                    print(f"Warning: Invalid grade '{assignment['grade']}' for student {student_id} on '{assignment_name}'. Skipping.")
-                    continue
+                    grade_percent = 0.0
+                
+                grade_20_scale = round((grade_percent / 100) * 20, 2)
 
-        # 4. Calculate the weighted average for the student
-        final_score = 0.0
-        for category, scores in scores_by_category.items():
-            if scores: # Only calculate if there are grades for this category
-                average_category_score = sum(scores) / len(scores)
-                category_weight = category_weights[category] / 100.0
-                final_score += average_category_score * category_weight
+                final_summary_data.append({
+                    "Teaching Unit": unit,
+                    "Course": course_name,
+                    "Credits": course_credits,
+                    "Grade (%)": f"{grade_percent:.2f}%",
+                    "Grade (0-20)": f"{grade_20_scale:.2f}"
+                })
+                
+                unit_weighted_grades += grade_percent * course_credits
+                unit_total_credits += course_credits
         
-        final_results.append({
-            'student_id': student_id,
-            'student_name': data['name'],
-            'final_grade': round(final_score, 2)
+        # Calculate and add the average row for the teaching unit.
+        if unit_total_credits > 0:
+            unit_average = unit_weighted_grades / unit_total_credits
+            unit_average_20_scale = round((unit_average / 100) * 20, 2)
+            final_summary_data.append({
+                "Teaching Unit": f"<strong>{unit}</strong>",
+                "Course": f"<strong>Unit Average</strong>",
+                "Credits": f"<strong>{unit_total_credits}</strong>",
+                "Grade (%)": f"<strong>{unit_average:.2f}%</strong>",
+                "Grade (0-20)": f"<strong>{unit_average_20_scale:.2f}</strong>"
+            })
+            overall_weighted_sum += unit_weighted_grades
+            overall_credit_sum += unit_total_credits
+
+    # 5. Calculate and add the final overall semester average row.
+    if overall_credit_sum > 0:
+        final_overall_average = overall_weighted_sum / overall_credit_sum
+        final_overall_average_20_scale = round((final_overall_average / 100) * 20, 2)
+        final_summary_data.append({
+            "Teaching Unit": "<strong>Overall</strong>",
+            "Course": "<strong>Overall Semester Average</strong>",
+            "Credits": f"<strong>{overall_credit_sum}</strong>",
+            "Grade (%)": f"<strong>{final_overall_average:.2f}%</strong>",
+            "Grade (0-20)": f"<strong>{final_overall_average_20_scale:.2f}</strong>"
         })
         
-    return final_results
-
+    return final_summary_data
