@@ -20,11 +20,12 @@
         .radio-label { display: block; padding: 0.5rem 0.75rem; border: 1px solid #E2E8F0; border-radius: 0.375rem; cursor: pointer; }
         .radio-label:hover { background-color: #F7FAFC; }
         input[type="radio"]:checked + .radio-label { background-color: #DBEAFE; border-color: #60A5FA; }
+        .accordion-header.disabled { cursor: not-allowed; color: #9CA3AF; }
+        .accordion-content { overflow: hidden; transition: max-height 0.3s ease-in-out; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
     <div class="min-h-screen flex flex-col">
-        <!-- Header -->
         <header class="bg-white shadow-sm sticky top-0 z-10">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between items-center py-4">
@@ -36,47 +37,95 @@
             </div>
         </header>
 
-        <!-- Main Content -->
         <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-            <div id="content-area" class="space-y-8">
+            <div id="accordion-container" class="space-y-4">
                 
-                <!-- Step 1: Curriculum Loader -->
-                <div id="curriculum-loader" class="bg-white p-6 rounded-lg shadow">
-                    <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">Step 1: Select a Curriculum File</h3>
-                    <div id="curriculum-file-list" class="space-y-2 mb-4">
-                        <p class="text-gray-500">Loading available files...</p>
+                <div class="accordion-item bg-white rounded-lg shadow">
+                    <div id="step-1-header" class="accordion-header flex justify-between items-center p-4 cursor-pointer">
+                        <h3 class="text-lg font-semibold text-gray-800">Step 1: Select Curriculum File</h3>
+                        <svg class="chevron-icon w-6 h-6 transform transition-transform" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                     </div>
-                    <button id="load-curriculum-btn" class="load-button" disabled>Load Selected Curriculum</button>
-                    <p id="curriculum-summary" class="text-sm text-green-600 mt-2 font-medium"></p>
+                    <div id="step-1-content" class="accordion-content p-6 border-t hidden">
+                        <div class="flex space-x-6">
+                            <div class="w-1/3">
+                                <h4 class="font-semibold mb-3 text-gray-700">Available Files</h4>
+                                <div id="curriculum-file-list" class="space-y-2 mb-4"></div>
+                                <button id="load-curriculum-btn" class="load-button" disabled>Load Selected Curriculum</button>
+                                <p id="curriculum-summary" class="text-sm text-green-600 mt-2 font-medium"></p>
+                            </div>
+                            <div class="w-2/3">
+                                <h4 class="font-semibold mb-3 text-gray-700">File Content</h4>
+                                <div id="curriculum-content-display"><p class="text-gray-500">Select a file and click 'Load' to view its content here.</p></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Step 2: Grades Loader -->
-                <div id="grades-loader" class="bg-white p-6 rounded-lg shadow">
-                    <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">Step 2: Select a Grades File</h3>
-                    <div id="grades-file-list" class="space-y-2 mb-4">
-                        <p class="text-gray-500">Loading available files...</p>
+                <div class="accordion-item bg-white rounded-lg shadow">
+                    <div id="step-2-header" class="accordion-header flex justify-between items-center p-4 cursor-pointer disabled">
+                        <h3 class="text-lg font-semibold">Step 2: Select Grades File and Column</h3>
+                        <svg class="chevron-icon w-6 h-6 transform transition-transform" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                     </div>
-                    <button id="load-grades-btn" class="load-button" disabled>Load Selected Grades</button>
-                    <p id="grades-summary" class="text-sm text-green-600 mt-2 font-medium"></p>
+                    <div id="step-2-content" class="accordion-content p-6 border-t hidden">
+                         <div class="flex space-x-6">
+                            <div class="w-1/3">
+                                <h4 class="font-semibold mb-3 text-gray-700">Available Files</h4>
+                                <div id="grades-file-list" class="space-y-2 mb-4"></div>
+                                <button id="load-grades-btn" class="load-button" disabled>Load and Analyze Grades</button>
+                                <p id="grades-summary" class="text-sm text-green-600 mt-2 font-medium"></p>
+                            </div>
+                            <div class="w-2/3">
+                                <h4 class="font-semibold mb-3 text-gray-700">File Summary</h4>
+                                <div id="grades-summary-display"><p class="text-gray-500">Load a grades file to see a summary.</p></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
-                <!-- Step 3: Calculation -->
-                <div id="action-bar" class="text-center bg-white p-4 rounded-lg shadow">
-                     <h3 class="text-lg font-semibold text-gray-800 mb-2">Step 3: Calculate</h3>
-                    <button id="calculate-btn" class="calc-button text-base px-6 py-2" disabled>Calculate Final Grades</button>
-                    <p id="status-text" class="text-sm text-gray-500 mt-2">Please complete steps 1 and 2.</p>
+                <div class="accordion-item bg-white rounded-lg shadow">
+                     <div id="step-3-header" class="accordion-header flex justify-between items-center p-4 cursor-pointer disabled">
+                        <h3 class="text-lg font-semibold">Step 3: Review Student Grades</h3>
+                        <svg class="chevron-icon w-6 h-6 transform transition-transform" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </div>
+                    <div id="step-3-content" class="accordion-content p-6 border-t hidden">
+                         <p class="text-sm text-gray-600 mb-4">Showing grades for column: <strong id="selected-grade-column-display" class="text-blue-600"></strong></p>
+                         <div class="flex space-x-6">
+                            <div class="w-1/3">
+                                <h4 class="font-semibold mb-3 text-gray-700">Student List</h4>
+                                <div id="student-list" class="space-y-1 max-h-96 overflow-y-auto border rounded-md p-2"></div>
+                            </div>
+                            <div class="w-2/3">
+                                <h4 class="font-semibold mb-3 text-gray-700">Grade Details</h4>
+                                <div id="grade-details"><p class="text-gray-500">Select a student to view their grade.</p></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Results Display -->
-                <div id="results-display" class="hidden">
-                    <h3 class="text-xl font-semibold mb-4 text-gray-800">Final Grades</h3>
-                    <div id="results-content" class="bg-white p-6 rounded-lg shadow"></div>
+                <div class="accordion-item bg-white rounded-lg shadow">
+                     <div id="step-4-header" class="accordion-header flex justify-between items-center p-4 cursor-pointer disabled">
+                        <h3 class="text-lg font-semibold">Step 4: Calculate Final Grades</h3>
+                        <svg class="chevron-icon w-6 h-6 transform transition-transform" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </div>
+                    <div id="step-4-content" class="accordion-content p-6 border-t hidden">
+                        <div class="text-center">
+                            <button id="calculate-btn" class="calc-button text-base px-6 py-2" disabled>Calculate Final Grades</button>
+                            <p id="status-text" class="text-sm text-gray-500 mt-2">Please complete all steps.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="results-accordion-item" class="accordion-item bg-white rounded-lg shadow hidden">
+                     <div id="results-header" class="accordion-header flex justify-between items-center p-4 cursor-pointer">
+                        <h3 class="text-lg font-semibold">Final Grade Results</h3>
+                        <svg class="chevron-icon w-6 h-6 transform transition-transform" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </div>
+                    <div id="results-content" class="accordion-content p-6 border-t hidden"></div>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- Modal for messages -->
     <div id="modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-20">
         <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div class="mt-3 text-center">
@@ -92,20 +141,28 @@
 
 <script>
     // --- State Management ---
-    const appState = { curriculumLoaded: false, gradesLoaded: false };
+    const appState = { 
+        curriculumLoaded: false, 
+        gradesLoaded: false,
+        selectedGradeColumn: null
+    };
 
     // --- DOM References ---
     const curriculumListDiv = document.getElementById('curriculum-file-list');
     const loadCurriculumBtn = document.getElementById('load-curriculum-btn');
     const curriculumSummary = document.getElementById('curriculum-summary');
+    const curriculumContentDisplay = document.getElementById('curriculum-content-display');
     
     const gradesListDiv = document.getElementById('grades-file-list');
     const loadGradesBtn = document.getElementById('load-grades-btn');
     const gradesSummary = document.getElementById('grades-summary');
+    const gradesSummaryDisplay = document.getElementById('grades-summary-display');
+
+    const selectedGradeColumnDisplay = document.getElementById('selected-grade-column-display');
     
     const calculateBtn = document.getElementById('calculate-btn');
     const statusText = document.getElementById('status-text');
-    const resultsDisplay = document.getElementById('results-display');
+    const resultsAccordionItem = document.getElementById('results-accordion-item');
     const resultsContent = document.getElementById('results-content');
     
     // --- Modal Logic ---
@@ -126,11 +183,52 @@
         modal.classList.remove('hidden');
     }
 
+    // --- Accordion Logic ---
+    function toggleAccordion(headerId) {
+        const header = document.getElementById(headerId);
+        if (!header || header.classList.contains('disabled')) return;
+        
+        const content = header.nextElementSibling;
+        const icon = header.querySelector('.chevron-icon');
+
+        content.classList.toggle('hidden');
+        icon.classList.toggle('rotate-180');
+    }
+
+    function openAccordion(headerId) {
+        const header = document.getElementById(headerId);
+        if (!header) return;
+        
+        const content = header.nextElementSibling;
+        const icon = header.querySelector('.chevron-icon');
+        
+        header.classList.remove('disabled');
+        content.classList.remove('hidden');
+        icon.classList.add('rotate-180');
+    }
+
+    function closeAccordion(headerId) {
+         const header = document.getElementById(headerId);
+        if (!header) return;
+        
+        const content = header.nextElementSibling;
+        const icon = header.querySelector('.chevron-icon');
+        
+        content.classList.add('hidden');
+        icon.classList.remove('rotate-180');
+    }
+
     // --- Core Application Logic ---
     function updateUIState() {
         const bothLoaded = appState.curriculumLoaded && appState.gradesLoaded;
         calculateBtn.disabled = !bothLoaded;
-        statusText.textContent = bothLoaded ? 'Ready to calculate.' : 'Please complete steps 1 and 2.';
+        
+        const step4Header = document.getElementById('step-4-header');
+        if (bothLoaded) {
+            step4Header.classList.remove('disabled');
+        } else {
+            step4Header.classList.add('disabled');
+        }
     }
 
     async function fetchAndDisplayFiles(endpoint, listDiv, loadBtn, radioName) {
@@ -146,7 +244,7 @@
             }
 
             files.forEach(file => {
-                const id = `${radioName}-${file.replace(/\./g, '-')}`;
+                const id = `${radioName}-${file.replace(/[^a-zA-Z0-9]/g, '-')}`;
                 const radioDiv = document.createElement('div');
                 radioDiv.innerHTML = `
                     <input type="radio" name="${radioName}_file" value="${file}" id="${id}" class="hidden">
@@ -155,13 +253,65 @@
                 listDiv.appendChild(radioDiv);
             });
 
-            listDiv.addEventListener('change', () => {
-                loadBtn.disabled = false;
-            });
+            listDiv.addEventListener('change', () => { loadBtn.disabled = false; });
 
         } catch (error) {
             listDiv.innerHTML = `<p class="text-red-500">${error.message}</p>`;
         }
+    }
+
+    function displayDataInTable(container, data) {
+        container.innerHTML = ''; // Clear placeholder
+        if (!data || data.length === 0) {
+            container.innerHTML = '<p class="text-gray-500">No data to display.</p>';
+            return;
+        }
+
+        const headers = Object.keys(data[0]);
+        const headerCells = headers.map(h => `<th class="py-2 px-3 text-left font-semibold text-sm">${h}</th>`).join('');
+        const bodyRows = data.map(item => {
+            const cells = headers.map(header => `<td class="py-2 px-3 text-sm">${item[header] || ''}</td>`).join('');
+            return `<tr class="border-b">${cells}</tr>`;
+        }).join('');
+
+        container.innerHTML = `
+            <div class="table-container border rounded-lg" style="max-height: 40vh;">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 sticky top-0"><tr>${headerCells}</tr></thead>
+                    <tbody class="divide-y">${bodyRows}</tbody>
+                </table>
+            </div>
+        `;
+    }
+    
+    function displayGradesSummary(data) {
+        gradesSummaryDisplay.innerHTML = ''; // Clear placeholder
+        const countHtml = `<p class="mb-4">Found <strong>${data.student_count}</strong> students in this file.</p>`;
+        let columnsHtml = '<p class="text-gray-500">No grade columns found.</p>';
+        if (data.grade_columns && data.grade_columns.length > 0) {
+            columnsHtml = `<h5 class="font-semibold text-gray-700 mb-2">Found <strong>${data.grade_columns.length}</strong> grade column(s). Please select one to review:</h5><div id="grade-column-list" class="space-y-2">`;
+            data.grade_columns.forEach(col => {
+                const id = `col-${col.replace(/[^a-zA-Z0-9]/g, '-')}`;
+                columnsHtml += `
+                    <div>
+                        <input type="radio" name="grade_column" value="${col}" id="${id}" class="hidden">
+                        <label for="${id}" class="radio-label">${col}</label>
+                    </div>`;
+            });
+            columnsHtml += '</div>';
+        }
+        gradesSummaryDisplay.innerHTML = countHtml + columnsHtml;
+        document.getElementById('grade-column-list')?.addEventListener('change', (e) => {
+            if (e.target.name === 'grade_column') {
+                appState.selectedGradeColumn = e.target.value;
+                appState.gradesLoaded = true;
+                selectedGradeColumnDisplay.textContent = appState.selectedGradeColumn;
+                fetchAndDisplayStudents();
+                updateUIState();
+                closeAccordion('step-2-header');
+                openAccordion('step-3-header');
+            }
+        });
     }
 
     loadCurriculumBtn.addEventListener('click', async () => {
@@ -171,9 +321,7 @@
             return;
         }
         
-        loadCurriculumBtn.disabled = true;
         loadCurriculumBtn.textContent = 'Loading...';
-
         try {
             const response = await fetch('/api/load/curriculum', {
                 method: 'POST',
@@ -185,15 +333,15 @@
             
             appState.curriculumLoaded = true;
             curriculumSummary.textContent = result.summary;
-
+            displayDataInTable(curriculumContentDisplay, result.data);
+            updateUIState();
+            closeAccordion('step-1-header');
+            openAccordion('step-2-header');
         } catch (error) {
             showModal('Load Error', error.message);
             appState.curriculumLoaded = false;
-            curriculumSummary.textContent = '';
         } finally {
-            loadCurriculumBtn.disabled = false;
             loadCurriculumBtn.textContent = 'Load Selected Curriculum';
-            updateUIState();
         }
     });
     
@@ -204,9 +352,11 @@
             return;
         }
         
-        loadGradesBtn.disabled = true;
-        loadGradesBtn.textContent = 'Loading...';
-
+        loadGradesBtn.textContent = 'Analyzing...';
+        appState.gradesLoaded = false;
+        appState.selectedGradeColumn = null;
+        closeAccordion('step-3-header');
+        
         try {
             const response = await fetch('/api/load/grades', {
                 method: 'POST',
@@ -216,24 +366,86 @@
             const result = await response.json();
             if (!response.ok) throw new Error(result.error);
             
-            appState.gradesLoaded = true;
             gradesSummary.textContent = result.summary;
+            displayGradesSummary(result.data);
 
         } catch (error) {
             showModal('Load Error', error.message);
-            appState.gradesLoaded = false;
             gradesSummary.textContent = '';
+            gradesSummaryDisplay.innerHTML = `<p class="text-red-500">Error analyzing file.</p>`;
         } finally {
-            loadGradesBtn.disabled = false;
-            loadGradesBtn.textContent = 'Load Selected Grades';
+            loadGradesBtn.textContent = 'Load and Analyze Grades';
             updateUIState();
         }
     });
 
-    calculateBtn.addEventListener('click', async () => {
-        calculateBtn.disabled = true;
-        calculateBtn.textContent = 'Calculating...';
+    async function fetchAndDisplayStudents() {
+        const studentListDiv = document.getElementById('student-list');
+        studentListDiv.innerHTML = '<p class="text-gray-500">Loading students...</p>';
+        try {
+            const response = await fetch('/api/students');
+            if (!response.ok) throw new Error('Could not fetch student list.');
+            const students = await response.json();
 
+            studentListDiv.innerHTML = '';
+            if (students.length === 0) {
+                studentListDiv.innerHTML = '<p class="text-gray-500">No students found.</p>';
+                return;
+            }
+
+            students.forEach(studentName => {
+                const studentDiv = document.createElement('div');
+                studentDiv.className = 'p-2 rounded-md cursor-pointer hover:bg-gray-100 transition-colors duration-150';
+                studentDiv.textContent = studentName;
+                studentDiv.addEventListener('click', (e) => {
+                    document.querySelectorAll('#student-list > div').forEach(div => div.classList.remove('bg-blue-100', 'font-semibold'));
+                    e.currentTarget.classList.add('bg-blue-100', 'font-semibold');
+                    fetchAndDisplayStudentGrades(studentName);
+                });
+                studentListDiv.appendChild(studentDiv);
+            });
+
+        } catch (error) {
+            showModal('Error', error.message);
+        }
+    }
+
+    async function fetchAndDisplayStudentGrades(studentName) {
+        const gradeDetailsDiv = document.getElementById('grade-details');
+        gradeDetailsDiv.innerHTML = '<p class="text-gray-500">Loading grade...</p>';
+
+        try {
+            const response = await fetch(`/api/grades/${encodeURIComponent(studentName)}`);
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'Could not fetch student grades.');
+            }
+            const allGrades = await response.json();
+            const specificGrades = allGrades.filter(g => g['Assignment Name'] === appState.selectedGradeColumn);
+            
+            if (!specificGrades || specificGrades.length === 0) {
+                gradeDetailsDiv.innerHTML = '<p class="text-gray-500">No grade found for this student in the selected column.</p>';
+                return;
+            }
+            
+            // Map to the final display format with the enriched and converted data
+            const displayData = specificGrades.map(g => ({ 
+                'Course': g.Course,
+                'Credits': g.Credits,
+                'Teaching Unit': g['Teaching unit'],
+                'Grade (%)': g.Grade,
+                'Grade (0-20)': g['Grade (0-20)']
+            }));
+
+            displayDataInTable(gradeDetailsDiv, displayData);
+
+        } catch (error) {
+            gradeDetailsDiv.innerHTML = `<p class="text-red-500">${error.message}</p>`;
+        }
+    }
+
+    calculateBtn.addEventListener('click', async () => {
+        calculateBtn.textContent = 'Calculating...';
         try {
             const response = await fetch('/api/calculate', { method: 'POST' });
             const result = await response.json();
@@ -241,54 +453,36 @@
 
             displayResults(result.data);
             showModal('Success', 'Calculation complete.', false);
-            
-            // Reset for next run
-            appState.curriculumLoaded = false;
-            appState.gradesLoaded = false;
-            curriculumSummary.textContent = '';
-            gradesSummary.textContent = '';
-            
-            const checkedCurriculum = document.querySelector('input[name="curriculum_file"]:checked');
-            if(checkedCurriculum) checkedCurriculum.checked = false;
-            
-            const checkedGrades = document.querySelector('input[name="grades_file"]:checked');
-            if(checkedGrades) checkedGrades.checked = false;
-
-
+            closeAccordion('step-4-header');
+            resultsAccordionItem.classList.remove('hidden');
+            openAccordion('results-header');
         } catch (error) {
             showModal('Calculation Error', error.message);
         } finally {
-            calculateBtn.disabled = false;
             calculateBtn.textContent = 'Calculate Final Grades';
-            updateUIState();
         }
     });
 
     function displayResults(resultsData) {
-        resultsDisplay.classList.remove('hidden');
         if (!resultsData || resultsData.length === 0) {
             resultsContent.innerHTML = '<p class="text-gray-500">No results to display. The source data might be incomplete.</p>';
         } else {
-            const headers = Object.keys(resultsData[0]);
-            const headerCells = headers.map(h => `<th class="py-2 px-4 font-semibold">${h.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</th>`).join('');
-            const bodyRows = resultsData.map(row => {
-                const cells = headers.map(header => `<td class="py-3 px-4">${row[header]}</td>`).join('');
-                return `<tr class="border-b">${cells}</tr>`;
-            }).join('');
-            resultsContent.innerHTML = `
-                <div class="table-container border rounded-lg">
-                    <table class="w-full text-left"><thead class="bg-gray-100 sticky top-0"><tr>${headerCells}</tr></thead><tbody class="divide-y">${bodyRows}</tbody></table>
-                </div>`;
+            displayDataInTable(resultsContent, resultsData);
         }
     }
 
     // Initial setup on page load
     document.addEventListener('DOMContentLoaded', () => {
+        // Setup Accordion Listeners
+        document.querySelectorAll('.accordion-header').forEach(header => {
+            header.addEventListener('click', () => toggleAccordion(header.id));
+        });
+
         fetchAndDisplayFiles('/api/curriculums', curriculumListDiv, loadCurriculumBtn, 'curriculum');
         fetchAndDisplayFiles('/api/grades', gradesListDiv, loadGradesBtn, 'grades');
         updateUIState();
+        openAccordion('step-1-header'); // Open the first step by default
     });
 </script>
 </body>
 </html>
-<!DOCTYPE html>

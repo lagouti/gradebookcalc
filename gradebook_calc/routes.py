@@ -8,39 +8,6 @@ from .managers import parsing_manager, calculation_manager
 
 main_bp = Blueprint('main', __name__)
 
-# def setup_dummy_data():
-#     """Creates dummy data directories and files for the app to use."""
-#     # Use the configuration from the current app context
-#     curriculum_dir = current_app.config['CURRICULUM_DIR']
-#     grades_dir = current_app.config['GRADES_DIR']
-    
-#     if not os.path.exists(curriculum_dir):
-#         os.makedirs(curriculum_dir)
-#     if not os.path.exists(grades_dir):
-#         os.makedirs(grades_dir)
-    
-#     dummy_curriculum_path = os.path.join(curriculum_dir, 'engineering_curriculum_2025.csv')
-#     if not os.path.exists(dummy_curriculum_path):
-#         with open(dummy_curriculum_path, 'w', newline='') as f:
-#             f.write("Semester,Teaching unit,Course,Credits\n")
-#             f.write("1,Math,Calculus I,5\n")
-#             f.write("2,Computer Science,Intro to Programming,4\n")
-            
-#     dummy_grades_path = os.path.join(grades_dir, 'fall_2025_grades.csv')
-#     if not os.path.exists(dummy_grades_path):
-#         with open(dummy_grades_path, 'w', newline='') as f:
-#             f.write("student_id,student_name,assignment_name,grade\n")
-#             f.write("101,Alice,Calculus I Midterm,88\n")
-#             f.write("102,Bob,Calculus I Midterm,92\n")
-#             f.write("101,Alice,Intro to Programming HW1,95\n")
-#             f.write("102,Bob,Intro to Programming HW1,85\n")
-
-# @main_bp.before_app_first_request
-# def before_first_request():
-#     """This function runs once before the first request to this blueprint."""
-#     setup_dummy_data()
-
-
 @main_bp.route('/')
 def index():
     """Serves the main user interface."""
@@ -74,7 +41,7 @@ def list_grades_api():
 
 @main_bp.route('/api/load/curriculum', methods=['POST'])
 def load_curriculum_api():
-    """Loads a specific curriculum file by name."""
+    """Loads a specific curriculum file by name and returns its content."""
     try:
         data = request.get_json()
         filename = data.get('filename')
@@ -96,7 +63,11 @@ def load_curriculum_api():
         session['curriculum'] = curriculum_data
         
         summary = f"Loaded '{filename}' with {len(curriculum_data)} courses."
-        return jsonify({"message": "Curriculum loaded successfully.", "summary": summary}), 200
+        return jsonify({
+            "message": "Curriculum loaded successfully.",
+            "summary": summary,
+            "data": curriculum_data
+        }), 200
 
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
@@ -107,7 +78,7 @@ def load_curriculum_api():
 
 @main_bp.route('/api/load/grades', methods=['POST'])
 def load_grades_api():
-    """Loads a specific grades file by name."""
+    """Analyzes a grades file and returns a summary."""
     try:
         data = request.get_json()
         filename = data.get('filename')
@@ -125,17 +96,87 @@ def load_grades_api():
         with open(file_path, 'r', encoding='utf-8') as f:
             file_content = f.read()
         
-        grades_data = parsing_manager.parse_grades(file_content)
-        session['grades'] = grades_data
+        analysis = parsing_manager.analyze_and_parse_grades(file_content)
+        session['grades'] = analysis['parsed_data']
         
-        summary = f"Loaded '{filename}' with {len(grades_data)} grade entries."
-        return jsonify({"message": "Grades loaded successfully.", "summary": summary}), 200
+        summary = f"Loaded and analyzed '{filename}'."
+        
+        return jsonify({
+            "message": "Grades analyzed successfully.",
+            "summary": summary,
+            "data": {
+                "student_count": analysis['student_count'],
+                "grade_columns": analysis['grade_columns']
+            }
+        }), 200
 
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         return jsonify({"error": "An internal server error occurred."}), 500
+
+
+@main_bp.route('/api/students', methods=['GET'])
+def get_students_api():
+    """Returns a list of unique student names from the loaded grades data."""
+    if 'grades' not in session:
+        return jsonify({"error": "Grades data not loaded."}), 400
+    
+    grades = session['grades']
+    student_names = sorted(list(set(entry['Student Name'] for entry in grades)))
+    return jsonify(student_names), 200
+
+
+@main_bp.route('/api/grades/<student_name>', methods=['GET'])
+def get_student_grades_api(student_name):
+    """
+    Returns all grade entries for a specific student, joined with curriculum data
+    and with grades converted to a 20-point scale.
+    """
+    if 'grades' not in session or 'curriculum' not in session:
+        return jsonify({"error": "Both grades and curriculum data must be loaded."}), 400
+        
+    grades = session['grades']
+    curriculum = session['curriculum']
+    
+    curriculum_lookup = {course['Course']: course for course in curriculum}
+    
+    student_grades = [entry for entry in grades if entry['Student Name'] == student_name]
+    
+    if not student_grades:
+        return jsonify({"error": "Student not found."}), 404
+    
+    enriched_grades = []
+    for grade_entry in student_grades:
+        course_name = grade_entry.get('Course')
+        curriculum_info = curriculum_lookup.get(course_name)
+        
+        # --- Grade Conversion Logic ---
+        grade_20_scale = "N/A"
+        try:
+            # Assumes grade is a string like "85%"
+            percentage_str = grade_entry.get('Grade', '0').strip().replace('%', '')
+            percentage_float = float(percentage_str)
+            grade_20_scale = round((percentage_float / 100) * 20, 2)
+        except (ValueError, TypeError):
+            # Handle cases where conversion is not possible
+            pass
+
+        enriched_entry = {
+            **grade_entry,
+            "Credits": "N/A",
+            "Teaching unit": "N/A",
+            "Grade (0-20)": grade_20_scale
+        }
+
+        if curriculum_info:
+            enriched_entry["Credits"] = curriculum_info.get('Credits', 'N/A')
+            enriched_entry["Teaching unit"] = curriculum_info.get('Teaching unit', 'N/A')
+            
+        enriched_grades.append(enriched_entry)
+            
+    return jsonify(enriched_grades), 200
 
 
 @main_bp.route('/api/calculate', methods=['POST'])

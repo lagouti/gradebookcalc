@@ -1,77 +1,102 @@
 # gradebook_calc/managers/parsing_manager.py
 
-import json
 import csv
-import io
+from io import StringIO
 
-def parse_curriculum(csv_string: str) -> list[dict]:
-    """
-    Parses the curriculum CSV string and performs validation.
-    The CSV format must be: Semester,Teaching unit,Course,Credits
-
-    Args:
-        csv_string: A string containing the CSV data for the curriculum.
-
-    Returns:
-        A list of dictionaries representing the parsed curriculum.
-
-    Raises:
-        ValueError: If the CSV is invalid or headers are incorrect.
-    """
-    try:
-        file_like_object = io.StringIO(csv_string)
-        reader = csv.DictReader(file_like_object)
-        
-        # --- Validation ---
-        expected_headers = ['Semester', 'Teaching unit', 'Course', 'Credits']
-        if not reader.fieldnames or any(h not in reader.fieldnames for h in expected_headers):
-            raise ValueError(f"Invalid curriculum format. Headers must be: {', '.join(expected_headers)}")
-
-        curriculum_data = list(reader)
-        if not curriculum_data:
-            raise ValueError("Curriculum file is empty or contains only a header.")
-            
-        # Optional: Further validation on rows
-        for i, row in enumerate(curriculum_data):
-            if not row.get('Credits') or not row.get('Credits').isdigit():
-                raise ValueError(f"Invalid 'Credits' value in row {i+2}. Must be a number.")
-
-        return curriculum_data
-        
-    except Exception as e:
-        raise ValueError(f"Error parsing curriculum CSV: {e}")
+def parse_curriculum(file_content: str):
+    """Parses the curriculum CSV content into a list of dictionaries."""
+    if not file_content:
+        raise ValueError("Curriculum file content is empty.")
     
+    reader = csv.DictReader(StringIO(file_content))
+    return [row for row in reader]
 
-def parse_grades(csv_string: str) -> list[dict]:
-    """
-    Parses the student grades CSV string and performs validation.
-
-    Args:
-        csv_string: A string containing the CSV data for student grades.
-
-    Returns:
-        A list of dictionaries, where each dictionary represents a row.
-
-    Raises:
-        ValueError: If the CSV is malformed or missing required columns.
-    """
+def is_numerical(value: str):
+    """Checks if a string can be interpreted as a number (int or float). Handles percentages."""
+    if not value:
+        return False
+    value = value.strip()
+    if value.endswith('%'):
+        value = value[:-1]
     try:
-        # Use io.StringIO to treat the string as a file for the csv reader.
-        file_like_object = io.StringIO(csv_string)
-        reader = csv.DictReader(file_like_object)
+        float(value)
+        return True
+    except (ValueError, TypeError):
+        return False
+
+def analyze_and_parse_grades(file_content: str):
+    """
+    Analyzes a grades CSV file to find student count, a course descriptor column, 
+    and grade columns. It then transforms the data from wide format to long format.
+    """
+    if not file_content:
+        raise ValueError("Grades file content is empty.")
+
+    reader = list(csv.reader(StringIO(file_content)))
+    header = reader[0]
+    data_rows = reader[1:]
+
+    if not data_rows:
+        return {"student_count": 0, "grade_columns": [], "parsed_data": []}
+
+    student_count = len(set(row[0] for row in data_rows if row))
+
+    # --- Enhanced Column Identification ---
+    student_col_idx = 0
+    course_col_idx = -1 # Default to no course column
+    grade_col_indices = {}
+
+    for i, col_name in enumerate(header):
+        if i == student_col_idx:
+            continue
         
-        # Check for required headers
-        required_cols = ['Student Name','Course','Teacher Name','Semestre 1 Grade','Semestre 2 Grade','Comments']
-        if not all(col in reader.fieldnames for col in required_cols):
-            missing_cols = [col for col in required_cols if col not in reader.fieldnames]
-            raise ValueError(f"CSV file is missing required columns: {', '.join(missing_cols)}")
+        # Check if any cell in the column is numerical to identify it as a grade column
+        is_grade_col = any(row and len(row) > i and is_numerical(row[i]) for row in data_rows)
 
-        grades = list(reader)
-        if not grades:
-            raise ValueError("CSV file is empty or contains only a header row.")
-            
-        return grades
-    except Exception as e:
-        # Re-raise validation errors or catch other parsing issues.
-        raise ValueError(f"Error parsing CSV: {e}")
+        if is_grade_col:
+            grade_col_indices[col_name] = i
+        elif course_col_idx == -1:  # Assume the first non-student, non-grade column is the course descriptor
+            course_col_idx = i
 
+    grade_columns = list(grade_col_indices.keys())
+
+    # --- Transformation ---
+    parsed_data = []
+    for row in data_rows:
+        if not row or not row[student_col_idx]:
+            continue
+        
+        student_name = row[student_col_idx]
+        # Use the identified course column, or default if none was found
+        course_name = row[course_col_idx] if course_col_idx != -1 and len(row) > course_col_idx else 'N/A'
+
+        for assignment_name, grade_col_idx in grade_col_indices.items():
+            if len(row) > grade_col_idx and row[grade_col_idx] is not None and row[grade_col_idx].strip() != '':
+                grade_value = row[grade_col_idx]
+                parsed_data.append({
+                    "Student Name": student_name,
+                    "Course": course_name,
+                    "Assignment Name": assignment_name,
+                    "Grade": grade_value
+                })
+
+    return {
+        "student_count": student_count,
+        "grade_columns": grade_columns,
+        "parsed_data": parsed_data
+    }
+
+
+def parse_grades(file_content: str):
+    """
+    (Legacy) Parses a simple, long-format grades CSV.
+    Replaced by analyze_and_parse_grades for more complex logic.
+    """
+    if not file_content:
+        raise ValueError("Grades file content is empty.")
+    
+    reader = csv.DictReader(StringIO(file_content))
+    expected_cols = {'student_name', 'assignment_name', 'grade'}
+    if not expected_cols.issubset(set(reader.fieldnames)):
+        raise ValueError("Grades file is missing one of the required columns: student_name, assignment_name, grade")
+    return [row for row in reader]
