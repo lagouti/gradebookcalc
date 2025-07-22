@@ -164,12 +164,14 @@ def get_student_grades_api(student_name):
             **grade_entry,
             "Credits": "N/A",
             "Teaching unit": "N/A",
+            "Semester": "N/A",
             "Grade (0-20)": grade_20_scale
         }
 
         if curriculum_info:
             enriched_entry["Credits"] = curriculum_info.get('Credits', 'N/A')
             enriched_entry["Teaching unit"] = curriculum_info.get('Teaching unit', 'N/A')
+            enriched_entry["Semester"] = curriculum_info.get('Semester', 'N/A')
             
         enriched_grades.append(enriched_entry)
             

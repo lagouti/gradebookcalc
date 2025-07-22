@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gradebook Calculator (Modular)</title>
+    <title>GradebookCalc (Modular)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
         .load-button {
@@ -33,7 +34,7 @@
                 <div class="flex justify-between items-center py-4">
                     <div class="flex items-center space-x-2">
                         <svg class="w-8 h-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08H4.125a2.25 2.25 0 0 0-2.25 2.25v11.54A2.25 2.25 0 0 0 4.125 21h11.75c.621 0 1.178-.252 1.584-.658a2.246 2.246 0 0 1 .372-.832l-1.44-1.44M9 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
-                        <h1 class="text-2xl font-bold text-gray-900">Gradebook Calculator</h1>
+                        <h1 class="text-2xl font-bold text-gray-900">GradebookCalc</h1>
                     </div>
                 </div>
             </div>
@@ -65,7 +66,7 @@
 
                 <div class="accordion-item bg-white rounded-lg shadow">
                     <div id="step-2-header" class="accordion-header flex justify-between items-center p-4 cursor-pointer disabled">
-                        <h3 class="text-lg font-semibold">Step 2: Select Grades File and Column</h3>
+                        <h3 class="text-lg font-semibold">Step 2: Select Grades File</h3>
                         <svg class="chevron-icon w-6 h-6 transform transition-transform" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                     </div>
                     <div id="step-2-content" class="accordion-content p-6 border-t hidden">
@@ -86,37 +87,23 @@
                 
                 <div class="accordion-item bg-white rounded-lg shadow">
                      <div id="step-3-header" class="accordion-header flex justify-between items-center p-4 cursor-pointer disabled">
-                        <h3 class="text-lg font-semibold">Step 3: Review Student Grades</h3>
+                        <h3 class="text-lg font-semibold">Step 3: Select Student and Semester</h3>
                         <svg class="chevron-icon w-6 h-6 transform transition-transform" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                     </div>
                     <div id="step-3-content" class="accordion-content p-6 border-t hidden">
-                         <p class="text-sm text-gray-600 mb-4">Showing grades for column: <strong id="selected-grade-column-display" class="text-blue-600"></strong></p>
                          <div class="flex space-x-6">
                             <div class="w-1/3">
-                                <h4 class="font-semibold mb-3 text-gray-700">Student List</h4>
+                                <h4 class="font-semibold mb-3 text-gray-700">Select a Student</h4>
                                 <div id="student-list" class="space-y-1 max-h-96 overflow-y-auto border rounded-md p-2"></div>
                             </div>
                             <div class="w-2/3">
                                 <h4 class="font-semibold mb-3 text-gray-700">Grade Details</h4>
-                                <div id="grade-details"><p class="text-gray-500">Select a student to view their grade.</p></div>
+                                <div id="grade-details"><p class="text-gray-500">Select a student to view their grade details.</p></div>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <div class="accordion-item bg-white rounded-lg shadow">
-                     <div id="step-4-header" class="accordion-header flex justify-between items-center p-4 cursor-pointer disabled">
-                        <h3 class="text-lg font-semibold">Step 4: Calculate Gradebook</h3>
-                        <svg class="chevron-icon w-6 h-6 transform transition-transform" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                    </div>
-                    <div id="step-4-content" class="accordion-content p-6 border-t hidden">
-                        <div id="semester-selection-area" class="mb-4 hidden">
-                            <label for="semester-select" class="block font-semibold text-gray-700 mb-2">Select Semester:</label>
+                         <div id="semester-selection-area" class="mt-6 hidden">
+                            <label for="semester-select" class="block font-semibold text-gray-700 mb-2">Select Semester to Calculate:</label>
                             <select id="semester-select" class="w-full p-2 border rounded-md"></select>
-                        </div>
-                        <div class="text-center">
-                            <button id="calculate-btn" class="calc-button text-base px-6 py-2" disabled>Calculate Semester Averages</button>
-                            <p id="status-text" class="text-sm text-gray-500 mt-2">Please complete all steps to enable calculation.</p>
                         </div>
                     </div>
                 </div>
@@ -126,7 +113,15 @@
                         <h3 id="results-title" class="text-lg font-semibold">Gradebook Summary</h3>
                         <svg class="chevron-icon w-6 h-6 transform transition-transform" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                     </div>
-                    <div id="results-content" class="accordion-content p-6 border-t hidden"></div>
+                    <div class="accordion-content p-6 border-t hidden">
+                        <div id="printable-summary">
+                            <h3 id="printable-title" class="text-xl font-bold mb-4 text-center"></h3>
+                            <div id="results-content"></div>
+                        </div>
+                        <div class="text-center mt-6">
+                            <button id="download-pdf-btn" class="load-button">Download as PDF</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
@@ -150,7 +145,6 @@
     const appState = { 
         curriculumLoaded: false, 
         gradesLoaded: false,
-        selectedGradeColumn: null,
         selectedStudent: null,
         selectedSemester: null
     };
@@ -165,17 +159,15 @@
     const loadGradesBtn = document.getElementById('load-grades-btn');
     const gradesSummary = document.getElementById('grades-summary');
     const gradesSummaryDisplay = document.getElementById('grades-summary-display');
-
-    const selectedGradeColumnDisplay = document.getElementById('selected-grade-column-display');
     
     const semesterSelectionArea = document.getElementById('semester-selection-area');
     const semesterSelect = document.getElementById('semester-select');
 
-    const calculateBtn = document.getElementById('calculate-btn');
-    const statusText = document.getElementById('status-text');
     const resultsAccordionItem = document.getElementById('results-accordion-item');
     const resultsContent = document.getElementById('results-content');
     const resultsTitle = document.getElementById('results-title');
+    const printableTitle = document.getElementById('printable-title');
+    const downloadPdfBtn = document.getElementById('download-pdf-btn');
     
     // --- Modal Logic ---
     const modal = document.getElementById('modal');
@@ -231,18 +223,6 @@
     }
 
     // --- Core Application Logic ---
-    function updateUIState() {
-        const readyForCalc = appState.curriculumLoaded && appState.gradesLoaded && appState.selectedStudent && appState.selectedSemester;
-        calculateBtn.disabled = !readyForCalc;
-        
-        const step4Header = document.getElementById('step-4-header');
-        if (appState.curriculumLoaded && appState.gradesLoaded) {
-            step4Header.classList.remove('disabled');
-        } else {
-            step4Header.classList.add('disabled');
-        }
-    }
-
     async function fetchAndDisplayFiles(endpoint, listDiv, loadBtn, radioName) {
         try {
             const response = await fetch(endpoint);
@@ -297,33 +277,9 @@
     }
     
     function displayGradesSummary(data) {
-        gradesSummaryDisplay.innerHTML = ''; // Clear placeholder
+        gradesSummaryDisplay.innerHTML = '';
         const countHtml = `<p class="mb-4">Found <strong>${data.student_count}</strong> students in this file.</p>`;
-        let columnsHtml = '<p class="text-gray-500">No grade columns found.</p>';
-        if (data.grade_columns && data.grade_columns.length > 0) {
-            columnsHtml = `<h5 class="font-semibold text-gray-700 mb-2">Found <strong>${data.grade_columns.length}</strong> grade column(s). Please select one to review:</h5><div id="grade-column-list" class="space-y-2">`;
-            data.grade_columns.forEach(col => {
-                const id = `col-${col.replace(/[^a-zA-Z0-9]/g, '-')}`;
-                columnsHtml += `
-                    <div>
-                        <input type="radio" name="grade_column" value="${col}" id="${id}" class="hidden">
-                        <label for="${id}" class="radio-label">${col}</label>
-                    </div>`;
-            });
-            columnsHtml += '</div>';
-        }
-        gradesSummaryDisplay.innerHTML = countHtml + columnsHtml;
-        document.getElementById('grade-column-list')?.addEventListener('change', (e) => {
-            if (e.target.name === 'grade_column') {
-                appState.selectedGradeColumn = e.target.value;
-                appState.gradesLoaded = true;
-                selectedGradeColumnDisplay.textContent = appState.selectedGradeColumn;
-                fetchAndDisplayStudents();
-                updateUIState();
-                closeAccordion('step-2-header');
-                openAccordion('step-3-header');
-            }
-        });
+        gradesSummaryDisplay.innerHTML = countHtml + `<p>The student list is now available in Step 3.</p>`;
     }
 
     async function populateSemesterSelector() {
@@ -347,7 +303,7 @@
     
     semesterSelect.addEventListener('change', () => {
         appState.selectedSemester = semesterSelect.value;
-        updateUIState();
+        triggerCalculation();
     });
 
     loadCurriculumBtn.addEventListener('click', async () => {
@@ -371,7 +327,6 @@
             curriculumSummary.textContent = result.summary;
             displayDataInTable(curriculumContentDisplay, result.data);
             await populateSemesterSelector();
-            updateUIState();
             closeAccordion('step-1-header');
             openAccordion('step-2-header');
         } catch (error) {
@@ -391,8 +346,6 @@
         
         loadGradesBtn.textContent = 'Analyzing...';
         appState.gradesLoaded = false;
-        appState.selectedGradeColumn = null;
-        closeAccordion('step-3-header');
         
         try {
             const response = await fetch('/api/load/grades', {
@@ -405,6 +358,11 @@
             
             gradesSummary.textContent = result.summary;
             displayGradesSummary(result.data);
+            
+            appState.gradesLoaded = true;
+            fetchAndDisplayStudents();
+            closeAccordion('step-2-header');
+            openAccordion('step-3-header');
 
         } catch (error) {
             showModal('Load Error', error.message);
@@ -412,7 +370,6 @@
             gradesSummaryDisplay.innerHTML = `<p class="text-red-500">Error analyzing file.</p>`;
         } finally {
             loadGradesBtn.textContent = 'Load and Analyze Grades';
-            updateUIState();
         }
     });
 
@@ -439,9 +396,7 @@
                     e.currentTarget.classList.add('bg-blue-100', 'font-semibold');
                     appState.selectedStudent = studentName;
                     fetchAndDisplayStudentGrades(studentName);
-                    closeAccordion('step-3-header');
-                    openAccordion('step-4-header');
-                    updateUIState();
+                    triggerCalculation();
                 });
                 studentListDiv.appendChild(studentDiv);
             });
@@ -453,7 +408,7 @@
 
     async function fetchAndDisplayStudentGrades(studentName) {
         const gradeDetailsDiv = document.getElementById('grade-details');
-        gradeDetailsDiv.innerHTML = '<p class="text-gray-500">Loading grade...</p>';
+        gradeDetailsDiv.innerHTML = '<p class="text-gray-500">Loading grades...</p>';
 
         try {
             const response = await fetch(`/api/grades/${encodeURIComponent(studentName)}`);
@@ -462,15 +417,15 @@
                 throw new Error(err.error || 'Could not fetch student grades.');
             }
             const allGrades = await response.json();
-            const specificGrades = allGrades.filter(g => g['Assignment Name'] === appState.selectedGradeColumn);
             
-            if (!specificGrades || specificGrades.length === 0) {
-                gradeDetailsDiv.innerHTML = '<p class="text-gray-500">No grade found for this student in the selected column.</p>';
+            if (!allGrades || allGrades.length === 0) {
+                gradeDetailsDiv.innerHTML = '<p class="text-gray-500">No grades found for this student.</p>';
                 return;
             }
             
-            const displayData = specificGrades.map(g => ({ 
+            const displayData = allGrades.map(g => ({ 
                 'Course': g.Course,
+                'Semester': g.Semester,
                 'Credits': g.Credits,
                 'Teaching Unit': g['Teaching unit'],
                 'Grade (%)': g.Grade,
@@ -484,13 +439,16 @@
         }
     }
 
-    calculateBtn.addEventListener('click', async () => {
+    async function triggerCalculation() {
         if (!appState.selectedStudent || !appState.selectedSemester) {
-            showModal('Error', 'Please ensure you have selected a student and a semester.');
             return;
         }
 
-        calculateBtn.textContent = 'Calculating...';
+        resultsAccordionItem.classList.remove('hidden');
+        resultsTitle.textContent = `Calculating for ${appState.selectedStudent}...`;
+        resultsContent.innerHTML = '<p class="text-gray-500">Calculating semester average...</p>';
+        openAccordion('results-header');
+
         try {
             const response = await fetch('/api/calculate', { 
                 method: 'POST',
@@ -503,18 +461,16 @@
             const result = await response.json();
             if (!response.ok) throw new Error(result.error);
             
-            resultsTitle.textContent = `Gradebook Summary for ${appState.selectedStudent} (Semester: ${appState.selectedSemester})`;
+            const titleText = `Gradebook Summary for ${appState.selectedStudent} (Semester: ${appState.selectedSemester})`;
+            resultsTitle.textContent = titleText;
+            printableTitle.textContent = titleText;
             displayResults(result.data);
             
-            closeAccordion('step-4-header');
-            resultsAccordionItem.classList.remove('hidden');
-            openAccordion('results-header');
         } catch (error) {
-            showModal('Calculation Error', error.message);
-        } finally {
-            calculateBtn.textContent = 'Calculate Semester Averages';
+            resultsContent.innerHTML = `<p class="text-red-500">Error calculating grades: ${error.message}</p>`;
         }
-    });
+    }
+
 
     function displayResults(resultsData) {
         resultsContent.innerHTML = '';
@@ -548,6 +504,23 @@
         `;
     }
 
+    downloadPdfBtn.addEventListener('click', () => {
+        const element = document.getElementById('printable-summary');
+        const student = appState.selectedStudent || 'student';
+        const semester = appState.selectedSemester || 'semester';
+        const filename = `Grade_Summary_${student.replace(' ', '_')}_Sem_${semester}.pdf`;
+
+        const opt = {
+            margin:       0.5,
+            filename:     filename,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2 },
+            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(element).save();
+    });
+
     // Initial setup on page load
     document.addEventListener('DOMContentLoaded', () => {
         // Setup Accordion Listeners
@@ -557,7 +530,6 @@
 
         fetchAndDisplayFiles('/api/curriculums', curriculumListDiv, loadCurriculumBtn, 'curriculum');
         fetchAndDisplayFiles('/api/grades', gradesListDiv, loadGradesBtn, 'grades');
-        updateUIState();
         openAccordion('step-1-header'); // Open the first step by default
     });
 </script>
